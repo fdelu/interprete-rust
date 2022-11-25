@@ -1897,8 +1897,31 @@
 ; 
 ; nil
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defn listar
+(defn indented 
+  ([indent new-line?] (if new-line? (apply str (repeat indent "  ")) ""))
+  ([indent] (indented indent true))
+)
 
+(defn listar-str [prev tokens indent new-line?]
+  (let [token (first tokens) rest (rest tokens) decreased (dec indent) increased (inc indent)]
+    (cond
+      (empty? tokens) prev
+      (= token (symbol "{")) (recur (str prev (if new-line? "" "\n") (indented indent) "{\n") rest increased true)
+      (= token (symbol "}")) (recur (str prev (if new-line? "" "\n") (indented decreased) "}\n") rest decreased true)
+      (= token (symbol ";")) (recur (str prev (indented indent new-line?) ";\n") rest indent true)
+      (= token (symbol "(")) (recur (str prev (indented increased new-line?) "( ") rest increased false)
+      (= token (symbol ")")) (recur (str prev (indented decreased new-line?) ") ") rest decreased false)
+      (string? token) (recur 
+        (str prev (indented indent new-line?) "\"" (clojure.string/escape token char-escape-string) "\" ")
+        rest indent false
+      )
+      :else (recur (str prev (indented indent new-line?) token " ") rest indent false)
+    )
+  )
+)
+
+(defn listar [tokens]
+  (print (listar-str "" tokens 0 true))
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1908,8 +1931,21 @@
 ; user=> (agregar-ptocoma (list 'fn 'main (symbol "(") (symbol ")") (symbol "{") 'if 'x '< '0 (symbol "{") 'x '= '- 'x (symbol ";") (symbol "}") 'renglon '= 'x (symbol ";") 'if 'z '< '0 (symbol "{") 'z '= '- 'z (symbol ";") (symbol "}") (symbol "}") 'fn 'foo (symbol "(") (symbol ")") (symbol "{") 'if 'y '> '0 (symbol "{") 'y '= '- 'y (symbol ";") (symbol "}") 'else (symbol "{") 'x '= '- 'y (symbol ";") (symbol "}") (symbol "}")))
 ; (fn main ( ) { if x < 0 { x = - x ; } ; renglon = x ; if z < 0 { z = - z ; } } fn foo ( ) { if y > 0 { y = - y ; } else { x = - y ; } })
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defn agregar-ptocoma
+(defn deberia-agregar-ptocoma? [next-token]
+  (not (contains? #{'else (symbol "}") 'fn nil} next-token))
+)
 
+(defn agregar-ptocoma 
+  ([tokens] (agregar-ptocoma '() tokens))
+  ([prev tokens] 
+    (let [token (first tokens) next (second tokens) rest (rest tokens)]
+      (cond
+        (empty? tokens) (reverse prev)
+        (and (= token (symbol "}")) (deberia-agregar-ptocoma? next)) (recur (conj prev token (symbol ";")) rest)
+        :else (recur (conj prev token) rest)
+      )
+    )
+  )
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1922,8 +1958,11 @@
 ; user=> (palabra-reservada? 13)
 ; false
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defn palabra-reservada?
-
+(defn palabra-reservada? [palabra] ()
+  (contains?  
+    #{'as, 'break, 'const, 'continue, 'crate, 'else, 'enum, 'extern, 'false, 'fn, 'for, 'if, 'impl, 'in, 'let, 'loop, 'match, 'mod, 'move, 'mut, 'pub, 'ref, 'return, 'self, 'Self, 'static, 'struct, 'super, 'trait, 'true, 'type, 'unsafe, 'use, 'where, 'while, 'async, 'await, 'dyn} 
+    palabra
+  )
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1938,8 +1977,8 @@
 ; user=> (identificador? '12e0)
 ; false
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defn identificador?
-
+(defn identificador? [id] ()
+  (not (or (palabra-reservada? id) (numero? id)))
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1960,8 +1999,8 @@
 ; 0 nil
 ; nil
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defn dump
-
+(defn dump [instrucciones]
+  (run! (partial apply println) (map-indexed list (if (nil? instrucciones) '(nil) instrucciones)))
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1980,7 +2019,7 @@
 ; user=> (ya-declarado-localmente? 'Write [[0 2] [['io ['lib '()] 0] ['Write ['lib '()] 0] ['entero_a_hexa ['fn [(list ['n (symbol ":") 'i64]) 'String]] 2]]])
 ; false
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defn ya-declarado-localmente?
+(defn ya-declarado-localmente? [] ()
 
 )
 
@@ -1997,7 +2036,7 @@
 ; [; (fn main ( ) { println! ( "{}" , TRES ) }) [use std :: io ; const TRES : i64 = 3] :sin-errores [[0] [[io [lib ()] 0] [TRES [const i64] 3]]] 0 [[CAL 0] HLT] []]
 ;                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ ^^^^^^^^^^^^ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defn cargar-const-en-tabla
+(defn cargar-const-en-tabla [] ()
 
 )
 
@@ -2013,7 +2052,7 @@
 ; [{ (let x : i64 = 10 ; println! ( "{}" , x ) }) [fn main ( )] :sin-errores [[0 1] [[main [fn [() ()]] 2]]] 0 [[CAL 2] HLT] []]
 ;                                                               ^^^^^^^^^^^^     ^  ^^^^^^^^^^^^^^^^^^^^^^^
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defn inicializar-contexto-local
+(defn inicializar-contexto-local [] ()
 
 )
 
@@ -2029,7 +2068,7 @@
 ; [EOF () [fn main ( ) { let x : i64 = 10 ; let y : i64 = 20 ; println! ( "{}" , x + y ) }] :sin-errores [[0] [[main [fn [() ()]] 2]]] 2 [[CAL 2] HLT [PUSHFI 10] [POP 0] [PUSHFI 20] [POP 1] [PUSHFI "{}"] [PUSHFM 0] [PUSHFM 1] ADD [PUSHFI 2] OUT NL] [[2 [i64 nil] [i64 nil]]]]
 ;                                                                                           ^^^^^^^^^^^^  ^^^ ^^^^^^^^^^^^^^^^^^^^^^^
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defn restaurar-contexto-anterior
+(defn restaurar-contexto-anterior [] ()
 
 )
 
@@ -2045,7 +2084,7 @@
 ; user=> (buscar-tipo-de-retorno [(symbol ";") (list 'println! (symbol "(") "La suma de 5 mas 7 es {}" (symbol ",") 'suma (symbol "(") 5 (symbol ",") 7 (symbol ")") (symbol ")") (symbol ";") (symbol "}")) ['fn 'suma (symbol "(") 'x (symbol ":") 'i64 (symbol ",") 'y (symbol ":") 'i64 (symbol ")") (symbol "->") 'i64 (symbol "{") 'x '+ 'y (symbol "}") 'fn 'main (symbol "(") (symbol ")") (symbol "{") 'suma (symbol "(") 5 (symbol ",") 7 (symbol ")")] :sin-errores [[0 2] [['suma ['fn [(list ['x (symbol ":") 'i64] ['y (symbol ":") 'i64]) 'i64]] 2] ['main ['fn [() ()]] 8]]] 0 [['CAL 8] 'HLT ['POPARG 1] ['POPARG 0] ['PUSHFM 0] ['PUSHFM 1] 'ADD 'RET ['PUSHFI 5] ['PUSHFI 7] ['CAL 2]] [[2 ['i64 nil] ['i64 nil]] [8]]] 1)
 ; nil
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defn buscar-tipo-de-retorno
+(defn buscar-tipo-de-retorno [] ()
 
 )
 
@@ -2062,7 +2101,7 @@
 ; [) (; println! ( "{}" , v ) ; }) [fn inc ( v : & mut i64 ) { * v += 1 ; } fn main ( ) { let mut v : i64 = 5 ; inc ( & mut v] :sin-errores [[0 2] [[inc [fn [([v : & mut i64]) ()]] 2] [main [fn [() ()]] 6] [v [var-mut i64] 0]]] 1 [[CAL 6] HLT [POPARG 0] [PUSHFI 1] [POPADDREF 0] RETN [PUSHFI 5] [POP 0] [PUSHADDR 0]] [[2 [i64 nil]] [6 [i64 nil]]]]
 ;                                                                                                                           ^  ^^^^^^^^^^^^                                                                    ^^^^^^^^^^^^^^^^^                                                                               ^^^^^^^^^^^^
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defn generar-ref
+(defn generar-ref [] ()
 
 )
 
@@ -2078,7 +2117,7 @@
 ; [{ (x = 20 ; } ; println! ( "{}" , x ) }) [fn main ( ) { let x : i64 ; if false { x = 10 ; } else] :sin-errores [[0 1 2] [[main [fn [() ()]] 2] [x [var-inmut i64] 0]]] 1 [[CAL 2] HLT [PUSHFI false] [JC 5] [JMP 8] [PUSHFI 10] [POP 0] [JMP ?]] [[2 [i64 nil]]]]
 ;                                                                                                    ^^^^^^^^^^^^                                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^: tamano 8                                                                                                                                                                                                                                        ^ ubicacion de JMP ? en contexto
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defn fixup
+(defn fixup [] ()
 
 )
 
@@ -2095,7 +2134,7 @@
 ; user=> (convertir-formato-impresion '("Las raices cuadradas de {} son +{:.8} y -{:.8}" 4.0 1.999999999985448 1.999999999985448))
 ; ("Las raices cuadradas de %.0f son +%.8f y -%.8f" 4.0 1.999999999985448 1.999999999985448)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defn convertir-formato-impresion
+(defn convertir-formato-impresion [] ()
 
 )
 
@@ -2115,7 +2154,7 @@
 ; user=> (dividir 1 2.0)
 ; 0.5
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defn dividir
+(defn dividir [] ()
 
 )
 
@@ -2146,7 +2185,7 @@
 ; user=> (compatibles? 'char ['a])
 ; true
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defn compatibles?
+(defn compatibles? [] ()
 
 )
 
@@ -2164,7 +2203,7 @@
 ; user=> (pasar-a-int [10.0])
 ; [10.0]
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defn pasar-a-int
+(defn pasar-a-int [] ()
 
 )
 
@@ -2183,7 +2222,7 @@
 ; user=> (pasar-a-float [10])
 ; [10]
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defn pasar-a-float
+(defn pasar-a-float [] ()
 
 )
 
@@ -2199,7 +2238,7 @@
 ; [[[String "2"] [i64 6] [i64 2] [i64 3] [i64 0]] [[f64 3] [i64 0]]]
 ;                                                   ^^^ ^
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defn cargar-en-ult-reg
+(defn cargar-en-ult-reg [] ()
 
 )
 
@@ -2216,7 +2255,7 @@
 ; [[[String "2"] [i64 6] [i64 2] [f64 3] [i64 0]] [[i64 6] [i64 2] [i64 [0 3]] [i64 [0 4]] [i64 2] [i64 2]]]
 ;                                 ^^^ ^
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defn cargar-en-reg-dest
+(defn cargar-en-reg-dest [] ()
 
 )
 
