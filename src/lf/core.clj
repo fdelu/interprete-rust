@@ -2140,7 +2140,7 @@
 ; [; (fn main ( ) { println! ( "{}" , TRES ) }) [use std :: io ; const TRES : i64 = 3] :sin-errores [[0] [[io [lib ()] 0] [TRES [const i64] 3]]] 0 [[CAL 0] HLT] []]
 ;                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ ^^^^^^^^^^^^ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defn nuevo-contexto [simb-ya-parseados contexto]
+(defn nuevo-contexto-cargar-const [simb-ya-parseados contexto]
   (let [simbolos (take-last 5 simb-ya-parseados) nombre (first simbolos) tipo (nth simbolos 2) valor (last simbolos)]
     (update contexto 1 
       #(conj % [nombre ['const tipo] valor])
@@ -2151,7 +2151,7 @@
 (defn cargar-const-en-tabla [ambiente] ()
   (if (= (estado ambiente) :sin-errores)
     (update ambiente 4
-      (partial nuevo-contexto (simb-ya-parseados ambiente))
+      (partial nuevo-contexto-cargar-const (simb-ya-parseados ambiente))
     )
     ambiente
   )
@@ -2169,8 +2169,15 @@
 ; [{ (let x : i64 = 10 ; println! ( "{}" , x ) }) [fn main ( )] :sin-errores [[0 1] [[main [fn [() ()]] 2]]] 0 [[CAL 2] HLT] []]
 ;                                                               ^^^^^^^^^^^^     ^  ^^^^^^^^^^^^^^^^^^^^^^^
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defn inicializar-contexto-local [] ()
+(defn nuevo-contexto-inicializar [[scopes declaraciones]]
+  [(conj scopes (count declaraciones)) declaraciones]
+)
 
+(defn inicializar-contexto-local [ambiente] ()
+  (if (= (estado ambiente) :sin-errores)
+    (update ambiente 4 nuevo-contexto-inicializar)
+    ambiente
+  )
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -2185,8 +2192,15 @@
 ; [EOF () [fn main ( ) { let x : i64 = 10 ; let y : i64 = 20 ; println! ( "{}" , x + y ) }] :sin-errores [[0] [[main [fn [() ()]] 2]]] 2 [[CAL 2] HLT [PUSHFI 10] [POP 0] [PUSHFI 20] [POP 1] [PUSHFI "{}"] [PUSHFM 0] [PUSHFM 1] ADD [PUSHFI 2] OUT NL] [[2 [i64 nil] [i64 nil]]]]
 ;                                                                                           ^^^^^^^^^^^^  ^^^ ^^^^^^^^^^^^^^^^^^^^^^^
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defn restaurar-contexto-anterior [] ()
+(defn nuevo-contexto-restaurar [[scopes declaraciones]]
+  [(pop scopes) (subvec declaraciones 0 (last scopes))]
+)
 
+(defn restaurar-contexto-anterior [ambiente] ()
+  (if (= (estado ambiente) :sin-errores)
+    (update ambiente 4 nuevo-contexto-restaurar)
+    ambiente
+  )
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
