@@ -35,3 +35,26 @@
   (is (identificador? 'e120))
   (is (not (identificador? '12e0)))
 )
+
+(deftest test-dump
+    (let 
+      [
+        nl (with-out-str (prn))
+      ]
+      (is (= 
+           (with-out-str (dump '[[POPREF 2] [PUSHFI 2] MUL [PUSHFI 1] ADD NEG]))
+           (str "0 [POPREF 2]" nl "1 [PUSHFI 2]" nl "2 MUL" nl "3 [PUSHFI 1]" nl "4 ADD" nl "5 NEG" nl)
+          )
+      )
+      (is (= 
+           (with-out-str (dump '[HLT]))
+           (str "0 HLT" nl)
+          )
+      )
+      (is (= 
+           (with-out-str (dump nil))
+           (str "0 nil" nl)
+          )
+      )
+    )
+)
