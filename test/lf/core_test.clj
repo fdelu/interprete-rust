@@ -22,3 +22,16 @@
       (is (= actual expected))
     )
 )
+
+(deftest test-palabra-reservada
+  (is (palabra-reservada? 'while)) 
+  (is (not (palabra-reservada? 'until)))  
+  (is (not (palabra-reservada? 13)))
+)
+
+(deftest test-identificador?
+  (is (identificador? 'boolean))
+  (is (not (identificador? 'bool)))
+  (is (identificador? 'e120))
+  (is (not (identificador? '12e0)))
+)

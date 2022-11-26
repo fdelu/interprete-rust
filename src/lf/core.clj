@@ -1853,7 +1853,7 @@
           ; CAL: Llamada a una funcion. Agrega al final de regs-de-act el reg-de-act (proveniente de mapa-regs) indicado por el argumento, cambia cont-prg por el
           ; valor del argumento y coloca al final de la pila la direccion de retorno (el valor del argumento incrementado en 1).
           CAL (let [nuevo-cont (last fetched)]
-              (recur cod (conj regs-de-act (get mapa-regs nuevo-cont)) nuevo-cont (conj pila (inc nuevo-cont)) mapa-regs)
+              (recur cod (conj regs-de-act (get mapa-regs nuevo-cont)) nuevo-cont (conj pila (inc cont-prg)) mapa-regs)
           )
           
           ; RETN: Indica el retorno de la llamada a un procedimiento (no funcion). Llama recursivamente a interpretar con valores actualizados de regs-de-act (se elimina el ultimo de ellos), cont-prg (pasa a ser el ultimo valor en la pila) y pila (se quita de ella el nuevo cont-prg).
@@ -1874,7 +1874,7 @@
                    (if (nil? res) res (recur cod res (inc cont-prg) (vec (butlast pila)) mapa-regs)))
 
           ; POPDIV: Como POPADD, pero divide.
-          POPDIV (let [res (asignar-aritmetico regs-de-act pila reg-actual fetched /)]
+          POPDIV (let [res (asignar-aritmetico regs-de-act pila reg-actual fetched dividir)]
                    (if (nil? res) res (recur cod res (inc cont-prg) (vec (butlast pila)) mapa-regs)))
           
           ; POPMOD: Como POPADD, pero calcula el resto de la division.
@@ -1890,7 +1890,7 @@
                       (if (nil? res) res (recur cod res (inc cont-prg) (vec (butlast pila)) mapa-regs)))
           
           ; POPDIVREF: Como POPADDREF, pero divide.
-          POPDIVREF (let [res (asignar-aritmetico-ref regs-de-act pila reg-actual fetched /)]
+          POPDIVREF (let [res (asignar-aritmetico-ref regs-de-act pila reg-actual fetched dividir)]
                       (if (nil? res) res (recur cod res (inc cont-prg) (vec (butlast pila)) mapa-regs)))
           
           ; POPMODREF: Como POPADDREF, pero calcula el resto de la division.
@@ -1906,7 +1906,7 @@
                 (if (nil? res) res (recur cod regs-de-act (inc cont-prg) res mapa-regs)))
 
           ; DIV: Como ADD, pero divide.
-          DIV (let [res (aplicar-operador-diadico / pila)]
+          DIV (let [res (aplicar-operador-diadico dividir pila)]
                 (if (nil? res) res (recur cod regs-de-act (inc cont-prg) res mapa-regs)))
           
           ; MOD: Como ADD, pero calcula el resto de la division.
@@ -2062,7 +2062,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn palabra-reservada? [palabra] ()
   (contains?  
-    #{'as, 'break, 'const, 'continue, 'crate, 'else, 'enum, 'extern, 'false, 'fn, 'for, 'if, 'impl, 'in, 'let, 'loop, 'match, 'mod, 'move, 'mut, 'pub, 'ref, 'return, 'self, 'Self, 'static, 'struct, 'super, 'trait, 'true, 'type, 'unsafe, 'use, 'where, 'while, 'async, 'await, 'dyn} 
+    #{'use, 'const, 'fn, 'std, 'io, 'process, 'Write, 'i64, 'f64, 'mut, 'bool, 'String, 'let, 'if, 'while,
+      'return, 'exit, 'format!, 'print!, 'println!, 'stdout, 'stdin, 'flush, 'read_line, 'expect, 'new, 'from,
+      'as_str, 'trim, 'chars, 'to_string, 'parse, 'nth, 'unwrap, 'sqrt, 'sin, 'atan, 'abs, 'as, 'usize } 
     palabra
   )
 )
@@ -2080,7 +2082,7 @@
 ; false
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn identificador? [id] ()
-  (not (or (palabra-reservada? id) (numero? id)))
+  (and (not (palabra-reservada? id)) (not (numero? id)) (re-matches #"^[a-zA-z0-9\_]+$" (str id)))
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
