@@ -2000,24 +2000,24 @@
 ; nil
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn indented 
-  ([indent new-line?] (if new-line? (apply str (repeat indent "  ")) ""))
+  ([indent new-line?] (if new-line? (apply str (repeat indent "  ")) " "))
   ([indent] (indented indent true))
 )
 
 (defn listar-str [prev tokens indent new-line?]
-  (let [token (first tokens) rest (rest tokens) decreased (dec indent) increased (inc indent)]
+  (let [token (first tokens) rest (rest tokens) decreased (dec indent) increased (inc indent) nl (with-out-str (prn))] 
     (cond
       (empty? tokens) prev
-      (= token (symbol "{")) (recur (str prev (if new-line? "" "\n") (indented indent) "{\n") rest increased true)
-      (= token (symbol "}")) (recur (str prev (if new-line? "" "\n") (indented decreased) "}\n") rest decreased true)
-      (= token (symbol ";")) (recur (str prev (indented indent new-line?) ";\n") rest indent true)
-      (= token (symbol "(")) (recur (str prev (indented increased new-line?) "( ") rest increased false)
-      (= token (symbol ")")) (recur (str prev (indented decreased new-line?) ") ") rest decreased false)
+      (= token (symbol "{")) (recur (str prev (if new-line? "" "\n") (indented indent) "{" nl) rest increased true)
+      (= token (symbol "}")) (recur (str prev (if new-line? "" "\n") (indented decreased) "}" nl) rest decreased true)
+      (= token (symbol ";")) (recur (str prev (indented indent new-line?) ";" nl) rest indent true)
+      (= token (symbol "(")) (recur (str prev (indented increased new-line?) "(") rest increased false)
+      (= token (symbol ")")) (recur (str prev (indented decreased new-line?) ")") rest decreased false)
       (string? token) (recur 
-        (str prev (indented indent new-line?) "\"" (clojure.string/escape token char-escape-string) "\" ")
+        (str prev (indented indent new-line?) \" (clojure.string/escape token char-escape-string) \")
         rest indent false
       )
-      :else (recur (str prev (indented indent new-line?) token " ") rest indent false)
+      :else (recur (str prev (indented indent new-line?) token) rest indent false)
     )
   )
 )
