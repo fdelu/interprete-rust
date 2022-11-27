@@ -1,4 +1,4 @@
-(defproject lf "0.1.0-SNAPSHOT"
+(defproject lf "1.0"
   :description "Intérprete de Rust en Clojure"
   :url "https://github.com/fdelu/interprete-rust"
   :license {:name "EPL-2.0 OR GPL-2.0-or-later WITH Classpath-exception-2.0"
