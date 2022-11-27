@@ -1843,13 +1843,13 @@
           PUSHFI (recur cod regs-de-act (inc cont-prg) (conj pila (last fetched)) mapa-regs)
           
           ; PUSHFM: PUSH FROM MEMORY. Direccionamiento directo. Incrementa cont-prg en 1 y agrega al final de pila el elemento ubicado en la posicion de reg-actual indicada por el valor del argumento.
-          PUSHFM (recur cod regs-de-act (inc cont-prg) (conj pila (get reg-actual (last fetched))) mapa-regs)
+          PUSHFM (recur cod regs-de-act (inc cont-prg) (conj pila (last (get reg-actual (last fetched)))) mapa-regs)
        
           ; JMP: Salto incondicional. Cambia cont-prg por el valor del argumento.
           JMP (recur cod regs-de-act (last fetched) pila mapa-regs)
           
           ; JC: Salto condicional. Quita el ultimo valor de la pila. Si este es true, cambia cont-prg por el valor del argumento. Si no, incrementa cont-prg en 1.
-          JC (recur cod regs-de-act (if (last pila) (last fetched) (inc fetched)) (pop pila) mapa-regs)  
+          JC (recur cod regs-de-act (if (last pila) (last fetched) (inc cont-prg)) (pop pila) mapa-regs)  
           
           ; CAL: Llamada a una funcion. Agrega al final de regs-de-act el reg-de-act (proveniente de mapa-regs) indicado por el argumento, cambia cont-prg por el
           ; valor del argumento y coloca al final de la pila la direccion de retorno (el valor del argumento incrementado en 1).
@@ -2359,15 +2359,17 @@
 ; true
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn compatibles? [tipo valor] ()
-  (or (vector? valor) (contains? (get {
-    ; mapa de tipo de Rust a conjunto de posibles clases en Clojure
-    'i64    #{java.lang.Long}
-    'f64    #{java.lang.Double}
-    'String #{java.lang.String}
-    'bool   #{java.lang.Boolean}
-    'usize  #{java.lang.Long}
-    'char   #{java.lang.Character}
-  } tipo) (class valor)))
+  (or
+     (vector? valor)
+     ((case tipo
+      i64    integer?
+      f64    float?
+      String string?
+      bool   boolean?
+      usize  integer?
+      char   char?
+     ) valor)
+  )
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
