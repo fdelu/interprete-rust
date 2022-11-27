@@ -1,5 +1,6 @@
 (ns lf.core
-  (:gen-class))
+  (:gen-class) 
+  (:require [clojure.string :as string]))
 (declare driver-loop)
 (declare escanear-arch)
 (declare listar)
@@ -146,8 +147,8 @@
       (driver-loop :iniciado))
    ([status]
       (print "Rust> ") (flush)
-      (try (let [linea (clojure.string/split (clojure.string/trim (read-line)) #" "),
-                 cabeza (clojure.string/upper-case (first linea))]
+      (try (let [linea (string/split (string/trim (read-line)) #" "),
+                 cabeza (string/upper-case (first linea))]
                 (cond
                   (= cabeza "SALIR") 'CHAU
                   (= cabeza "AYUDA") (driver-loop)
@@ -174,7 +175,7 @@
                                                        (driver-loop status)))))
                   (= cabeza "") (driver-loop status)
                   :else (do (print "ERROR: ") (println (buscar-mensaje 1) (str (symbol "(") (first linea) (symbol ")"))) (flush) (driver-loop status))))
-           (catch Exception e (println "ERROR ->" (clojure.string/trim (clojure.string/upper-case (let [msg-err (get (Throwable->map e) :cause)] (if (nil? msg-err) "desconocido" msg-err))))) (driver-loop status))))
+           (catch Exception e (println "ERROR ->" (string/trim (string/upper-case (let [msg-err (get (Throwable->map e) :cause)] (if (nil? msg-err) "desconocido" msg-err))))) (driver-loop status))))
 )
 
 (defn escanear-arch [nom]
@@ -2014,7 +2015,7 @@
       (= token (symbol "(")) (recur (str prev (indented increased new-line?) "(") rest increased false)
       (= token (symbol ")")) (recur (str prev (indented decreased new-line?) ")") rest decreased false)
       (string? token) (recur 
-        (str prev (indented indent new-line?) \" (clojure.string/escape token char-escape-string) \")
+        (str prev (indented indent new-line?) \" (string/escape token char-escape-string) \")
         rest indent false
       )
       :else (recur (str prev (indented indent new-line?) token) rest indent false)
@@ -2259,8 +2260,15 @@
 ; [{ (x = 20 ; } ; println! ( "{}" , x ) }) [fn main ( ) { let x : i64 ; if false { x = 10 ; } else] :sin-errores [[0 1 2] [[main [fn [() ()]] 2] [x [var-inmut i64] 0]]] 1 [[CAL 2] HLT [PUSHFI false] [JC 5] [JMP 8] [PUSHFI 10] [POP 0] [JMP ?]] [[2 [i64 nil]]]]
 ;                                                                                                    ^^^^^^^^^^^^                                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^: tamano 8                                                                                                                                                                                                                                        ^ ubicacion de JMP ? en contexto
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defn fixup [] ()
+(defn nuevo-bytecode-fixup [ubicacion-jmp bytecode]
+  (assoc bytecode ubicacion-jmp ['JMP (count bytecode)])
+)
 
+(defn fixup [ambiente ubicacion-jmp] ()
+  (if (= (estado ambiente) :sin-errores)
+    (update ambiente 6 (partial nuevo-bytecode-fixup ubicacion-jmp))
+    ambiente
+  )
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -2276,8 +2284,26 @@
 ; user=> (convertir-formato-impresion '("Las raices cuadradas de {} son +{:.8} y -{:.8}" 4.0 1.999999999985448 1.999999999985448))
 ; ("Las raices cuadradas de %.0f son +%.8f y -%.8f" 4.0 1.999999999985448 1.999999999985448)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defn convertir-formato-impresion [] ()
+(defn corregir-siguiente [string siguiente]
+  (string/replace-first string #"\{(?::\.\d)?\}"
+    (cond
+      (integer? siguiente) "%d"
+      (float? siguiente) (str "%" (or (last (re-find #"\{(?::(\.\d))?\}" string)) ".0") "f")
+      :else "%s"
+    )
+  )
+)
 
+(defn convertir-formato-impresion 
+  ([argumentos] (convertir-formato-impresion (first argumentos) [] (next argumentos)))
+  ([string hechos pendientes] 
+    (let [siguiente (first pendientes) restantes (next pendientes)]
+      (if (nil? siguiente)
+        (cons string hechos)
+        (convertir-formato-impresion (corregir-siguiente string siguiente) (conj hechos siguiente) restantes)
+      )
+    )
+  )
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
