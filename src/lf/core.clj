@@ -1849,7 +1849,7 @@
           JMP (recur cod regs-de-act (last fetched) pila mapa-regs)
           
           ; JC: Salto condicional. Quita el ultimo valor de la pila. Si este es true, cambia cont-prg por el valor del argumento. Si no, incrementa cont-prg en 1.
-          JC (recur cod regs-de-act (if (last pila) (last fetched) (inc fetched)) (butlast pila) mapa-regs)  
+          JC (recur cod regs-de-act (if (last pila) (last fetched) (inc fetched)) (pop pila) mapa-regs)  
           
           ; CAL: Llamada a una funcion. Agrega al final de regs-de-act el reg-de-act (proveniente de mapa-regs) indicado por el argumento, cambia cont-prg por el
           ; valor del argumento y coloca al final de la pila la direccion de retorno (el valor del argumento incrementado en 1).
@@ -2035,7 +2035,7 @@
 ; (fn main ( ) { if x < 0 { x = - x ; } ; renglon = x ; if z < 0 { z = - z ; } } fn foo ( ) { if y > 0 { y = - y ; } else { x = - y ; } })
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn deberia-agregar-ptocoma? [next-token]
-  (not (contains? #{'else (symbol "}") 'fn nil} next-token))
+  (not (contains? #{'else (symbol "}") (symbol ")") 'fn nil} next-token))
 )
 
 (defn agregar-ptocoma 
@@ -2295,9 +2295,9 @@
 )
 
 (defn convertir-formato-impresion 
-  ([argumentos] (convertir-formato-impresion (first argumentos) [] (next argumentos)))
+  ([argumentos] (convertir-formato-impresion (first argumentos) [] (rest argumentos)))
   ([string hechos pendientes] 
-    (let [siguiente (first pendientes) restantes (next pendientes)]
+    (let [siguiente (first pendientes) restantes (rest pendientes)]
       (if (nil? siguiente)
         (cons string hechos)
         (convertir-formato-impresion (corregir-siguiente string siguiente) (conj hechos siguiente) restantes)
