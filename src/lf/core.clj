@@ -2105,7 +2105,7 @@
 ; nil
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn dump [instrucciones]
-  (run! (partial apply println) (map-indexed list (if (nil? instrucciones) '(nil) instrucciones)))
+  (run! (partial apply prn) (map-indexed list (if (nil? instrucciones) '(nil) instrucciones)))
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -2287,8 +2287,10 @@
 (defn corregir-siguiente [string siguiente]
   (string/replace-first string #"\{(?::\.\d)?\}"
     (cond
-      (integer? siguiente) "%d"
-      (float? siguiente) (str "%" (or (last (re-find #"\{(?::(\.\d))?\}" string)) ".0") "f")
+      (int? siguiente) "%d"
+      (float? siguiente) (str "%" (or (last (re-find #"\{(?::(\.\d))?\}" string)) (if (== (int siguiente) siguiente) ".0" "")) "f")
+      ; Nota: Checkeo si el flotante es en realidad un entero para poner %.0f ya que eso pide último ejemplo de la descripción
+      ; de la función, pero dejo %f para otros flotantes porque sino el ejemplo main09.rs no funcionaría acorde a la consigna
       :else "%s"
     )
   )
@@ -2362,11 +2364,11 @@
   (or
      (vector? valor)
      ((case tipo
-      i64    integer?
+      i64    int?
       f64    float?
       String string?
       bool   boolean?
-      usize  integer?
+      usize  int?
       char   char?
      ) valor)
   )
