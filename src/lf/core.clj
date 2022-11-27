@@ -1858,7 +1858,7 @@
           )
           
           ; RETN: Indica el retorno de la llamada a un procedimiento (no funcion). Llama recursivamente a interpretar con valores actualizados de regs-de-act (se elimina el ultimo de ellos), cont-prg (pasa a ser el ultimo valor en la pila) y pila (se quita de ella el nuevo cont-prg).
-          RETN (recur cod (butlast regs-de-act) (last pila) (butlast pila) mapa-regs)
+          RETN (recur cod (pop regs-de-act) (last pila) (pop pila) mapa-regs)
           
           ; NL: New line. Imprime un salto de linea e incrementa cont-prg en 1.
           NL (do (prn) (recur cod regs-de-act (inc cont-prg) pila mapa-regs))
@@ -1868,35 +1868,35 @@
 
           ; POPSUB: Como POPADD, pero resta. 
           POPSUB (let [res (asignar-aritmetico regs-de-act pila reg-actual fetched -)]
-                   (if (nil? res) res (recur cod res (inc cont-prg) (vec (butlast pila)) mapa-regs)))
+                   (if (nil? res) res (recur cod res (inc cont-prg) (pop pila) mapa-regs)))
 
           ; POPMUL: Como POPADD, pero multiplica.
           POPMUL (let [res (asignar-aritmetico regs-de-act pila reg-actual fetched *)]
-                   (if (nil? res) res (recur cod res (inc cont-prg) (vec (butlast pila)) mapa-regs)))
+                   (if (nil? res) res (recur cod res (inc cont-prg) (pop pila) mapa-regs)))
 
           ; POPDIV: Como POPADD, pero divide.
           POPDIV (let [res (asignar-aritmetico regs-de-act pila reg-actual fetched dividir)]
-                   (if (nil? res) res (recur cod res (inc cont-prg) (vec (butlast pila)) mapa-regs)))
+                   (if (nil? res) res (recur cod res (inc cont-prg) (pop pila) mapa-regs)))
           
           ; POPMOD: Como POPADD, pero calcula el resto de la division.
           POPMOD (let [res (asignar-aritmetico regs-de-act pila reg-actual fetched rem)]
-                   (if (nil? res) res (recur cod res (inc cont-prg) (vec (butlast pila)) mapa-regs)))
+                   (if (nil? res) res (recur cod res (inc cont-prg) (pop pila) mapa-regs)))
           
           ; POPSUBREF: Como POPADDREF, pero resta. 
           POPSUBREF (let [res (asignar-aritmetico-ref regs-de-act pila reg-actual fetched -)]
-                      (if (nil? res) res (recur cod res (inc cont-prg) (vec (butlast pila)) mapa-regs)))
+                      (if (nil? res) res (recur cod res (inc cont-prg) (pop pila) mapa-regs)))
           
           ; POPMULREF: Como POPADDREF, pero multiplica.
           POPMULREF (let [res (asignar-aritmetico-ref regs-de-act pila reg-actual fetched *)]
-                      (if (nil? res) res (recur cod res (inc cont-prg) (vec (butlast pila)) mapa-regs)))
+                      (if (nil? res) res (recur cod res (inc cont-prg) (pop pila) mapa-regs)))
           
           ; POPDIVREF: Como POPADDREF, pero divide.
           POPDIVREF (let [res (asignar-aritmetico-ref regs-de-act pila reg-actual fetched dividir)]
-                      (if (nil? res) res (recur cod res (inc cont-prg) (vec (butlast pila)) mapa-regs)))
+                      (if (nil? res) res (recur cod res (inc cont-prg) (pop pila) mapa-regs)))
           
           ; POPMODREF: Como POPADDREF, pero calcula el resto de la division.
           POPMODREF (let [res (asignar-aritmetico-ref regs-de-act pila reg-actual fetched rem)]
-                      (if (nil? res) res (recur cod res (inc cont-prg) (vec (butlast pila)) mapa-regs)))
+                      (if (nil? res) res (recur cod res (inc cont-prg) (pop pila) mapa-regs)))
 
           ; SUB: Como ADD, pero resta. 
           SUB (let [res (aplicar-operador-diadico - pila)]
