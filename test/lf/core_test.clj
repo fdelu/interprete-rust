@@ -153,3 +153,42 @@
   (is (= (convertir-formato-impresion '("{} elevado a la {} es\t{}" 2.0 2 4.0)) '("%.0f elevado a la %d es\t%.0f" 2.0 2 4.0)))
   (is (= (convertir-formato-impresion '("Las raices cuadradas de {} son +{:.8} y -{:.8}" 4.0 1.999999999985448 1.999999999985448)) '("Las raices cuadradas de %.0f son +%.8f y -%.8f" 4.0 1.999999999985448 1.999999999985448)))
 )
+
+(deftest test-dividir
+  (is (= (dividir 12 3) 4))
+  (is (= (dividir 12.0 3) 4.0))
+  (is (= (dividir 12 3.0) 4.0))
+  (is (= (dividir 12.0 3.0) 4.0))
+  (is (= (dividir 1 2) 0))
+  (is (= (dividir 1 2.0) 0.5))
+)
+
+(deftest test-compatibles?
+  (is (compatibles? 'i64 5))
+  (is (not (compatibles? 'i64 5.0)))
+  (is (compatibles? 'i64 [5.0]))
+  (is (compatibles? 'f64 5.0))
+  (is (compatibles? 'String "Hola"))
+  (is (compatibles? 'bool true))
+  (is (not (compatibles? 'bool 1)))
+  (is (compatibles? 'usize 1))
+  (is (compatibles? 'char \a))
+  (is (not (compatibles? 'char 'a)))
+  (is (compatibles? 'char ['a]))
+)
+
+(deftest test-pasar-a-int
+  (is (= (pasar-a-int "10") 10))
+  (is (= (pasar-a-int 10.0) 10))
+  (is (= (pasar-a-int 10) 10))
+  (is (= (pasar-a-int 'a) 'a))
+  (is (= (pasar-a-int [10.0]) [10.0]))
+)
+
+(deftest test-pasar-a-float
+  (is (= (pasar-a-float "10") 10.0))
+  (is (= (pasar-a-float 10.0) 10.0))
+  (is (= (pasar-a-float 10) 10.0))
+  (is (= (pasar-a-float 'a) 'a))
+  (is (= (pasar-a-float [10]) [10]))
+)
