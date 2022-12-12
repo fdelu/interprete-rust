@@ -850,6 +850,8 @@
                 (escanear))
      String (-> amb
                 (escanear))
+        i32 (-> amb
+                (escanear))
        (dar-error amb 19))
       amb)
 )
@@ -2365,6 +2367,7 @@
      (vector? valor)
      ((case tipo
       i64    int?
+      i32    int?
       f64    float?
       String string?
       bool   boolean?
