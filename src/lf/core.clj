@@ -1,7 +1,6 @@
 (ns lf.core
   (:gen-class) 
   (:require [clojure.string :as string]))
-(import '(java.io BufferedReader StringReader))
 (declare driver-loop)
 (declare escanear-arch)
 (declare listar)
@@ -185,11 +184,7 @@
 )
 
 (defn por-linea [texto]
-  (-> texto
-    (StringReader.)
-    (BufferedReader.)
-    (line-seq)
-  )
+  (clojure.string/split-lines texto)
 )
 
 (defn escanear-arch [nom]
