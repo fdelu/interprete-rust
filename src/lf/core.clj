@@ -1,6 +1,7 @@
 (ns lf.core
   (:gen-class) 
   (:require [clojure.string :as string]))
+(import '(java.io BufferedReader StringReader))
 (declare driver-loop)
 (declare escanear-arch)
 (declare listar)
@@ -178,10 +179,27 @@
            (catch Exception e (println "ERROR ->" (string/trim (string/upper-case (let [msg-err (get (Throwable->map e) :cause)] (if (nil? msg-err) "desconocido" msg-err))))) (driver-loop status))))
 )
 
+
+(defn quitar-comentarios [texto]
+  (clojure.string/replace texto #"(\/\*(?:\s|.)*?\*\/)|(\/\/.*)" "")
+)
+
+(defn por-linea [texto]
+  (-> texto
+    (StringReader.)
+    (BufferedReader.)
+    (line-seq)
+  )
+)
+
 (defn escanear-arch [nom]
   (map #(let [aux (try (clojure.edn/read-string %) (catch Exception e (symbol %)))] (if (or (number? aux) (string? aux) (instance? Boolean aux)) aux (symbol %)))
-        (remove empty? (with-open [rdr (clojure.java.io/reader nom)]
-                                  (flatten (doall (map #(re-seq #"print!|println!|format!|\:\:|\<\=|\>\=|\-\>|\=\=|\!\=|\+\=|\-\=|\*\=|\/\=|\%\=|\&\&|\|\||\<|\>|\=|\(|\)|\,|\;|\+|\-|\*|\/|\[|\]|\{|\}|\%|\&|\!|\:|\"[^\"]*\"|\d+\.\d+E[+-]?\d+|\d+\.E[+-]?\d+|\.\d+E[+-]?\d+|\d+E[+-]?\d+|\d+\.\d+|\d+\.|\.\d+|\.|\d+|\_[A-Za-z0-9\_]+|[A-Za-z][A-Za-z0-9\_]*|\.|\'|\"|\||\#|\$|\@|\?|\^|\\|\~" %) (line-seq rdr)))))))
+    (as-> (slurp nom) archivo
+      (quitar-comentarios archivo)
+      (por-linea archivo)
+      (remove empty? (flatten (doall (map #(re-seq #"print!|println!|format!|\:\:|\<\=|\>\=|\-\>|\=\=|\!\=|\+\=|\-\=|\*\=|\/\=|\%\=|\&\&|\|\||\<|\>|\=|\(|\)|\,|\;|\+|\-|\*|\/|\[|\]|\{|\}|\%|\&|\!|\:|\"[^\"]*\"|\d+\.\d+E[+-]?\d+|\d+\.E[+-]?\d+|\.\d+E[+-]?\d+|\d+E[+-]?\d+|\d+\.\d+|\d+\.|\.\d+|\.|\d+|\_[A-Za-z0-9\_]+|[A-Za-z][A-Za-z0-9\_]*|\.|\'|\"|\||\#|\$|\@|\?|\^|\\|\~" %) archivo))))
+    )
+  )
 )
 
 (defn buscar-mensaje [cod]
