@@ -181,7 +181,7 @@
 (defn escanear-arch [nom]
   (map #(let [aux (try (clojure.edn/read-string %) (catch Exception e (symbol %)))] (if (or (number? aux) (string? aux) (instance? Boolean aux)) aux (symbol %)))
         (remove empty? (with-open [rdr (clojure.java.io/reader nom)]
-                                  (flatten (doall (map #(re-seq #"print!|println!|format!|\:\:|\<\=|\>\=|\-\>|\=\=|\!\=|\+\=|\-\=|\*\=|\/\=|\%\=|\&\&|\|\||\<|\>|\=|\(|\)|\,|\;|\+|\-|\*|\/|\[|\]|\{|\}|\%|\&|\!|\:|\"[^\"]*\"|\d+\.\d+E[+-]?\d+|\d+\.E[+-]?\d+|\.\d+E[+-]?\d+|\d+E[+-]?\d+|\d+\.\d+|\d+\.|\.\d+|\.|\d+|\_[A-Za-z0-9\_]+|[A-Za-z][A-Za-z0-9\_]*|\.|\'|\"|\||\#|\$|\@|\?|\^|\\|\~" %) (line-seq rdr)))))))
+                                  (flatten (doall (map #(re-seq #"print!|println!|format!|\*\*|\:\:|\<\=|\>\=|\-\>|\=\=|\!\=|\+\=|\-\=|\*\=|\/\=|\%\=|\&\&|\|\||\<|\>|\=|\(|\)|\,|\;|\+|\-|\*|\/|\[|\]|\{|\}|\%|\&|\!|\:|\"[^\"]*\"|\d+\.\d+E[+-]?\d+|\d+\.E[+-]?\d+|\.\d+E[+-]?\d+|\d+E[+-]?\d+|\d+\.\d+|\d+\.|\.\d+|\.|\d+|\_[A-Za-z0-9\_]+|[A-Za-z][A-Za-z0-9\_]*|\.|\'|\"|\||\#|\$|\@|\?|\^|\\|\~" %) (line-seq rdr)))))))
 )
 
 (defn buscar-mensaje [cod]
@@ -692,7 +692,7 @@
 )
 
 (defn hace-push-implicito? [instr]
-  (contains? #{'ADD 'SUB 'MUL 'DIV 'MOD 'OR 'AND 'EQ 'NEQ 'GT 'GTE 'LT 'LTE 'NEG 'NOT 'SQRT 'SIN 'ATAN 'ABS 'TOI 'TOF} instr)
+  (contains? #{'ADD 'SUB 'MUL 'DIV 'MOD 'OR 'AND 'EQ 'NEQ 'GT 'GTE 'LT 'LTE 'NEG 'NOT 'SQRT 'SIN 'ATAN 'ABS 'TOI 'TOF 'EXP} instr)
 )
 
 (defn confirmar-retorno [amb]
@@ -1446,11 +1446,31 @@
       amb)
 )
 
-(defn expresion-multiplicativa [amb]
+(defn expresion-exponencial [amb]
   (if (= (estado amb) :sin-errores)
       (-> amb
           (expresion-unaria)
           (procesar-mas-expresion-unaria))
+      amb)
+)
+
+(defn procesar-mas-expresion-exponencial [amb]
+  (if (= (estado amb) :sin-errores)
+      (case (simb-actual amb) 
+         ** (-> amb
+               (escanear)
+               (expresion-exponencial)
+               (generar ,,, 'EXP)
+               (recur))
+         amb)
+      amb)
+)
+
+(defn expresion-multiplicativa [amb]
+  (if (= (estado amb) :sin-errores)
+      (-> amb
+          (expresion-exponencial)
+          (procesar-mas-expresion-exponencial))
       amb)
 )
 
@@ -1904,6 +1924,10 @@
           
           ; MUL: Como ADD, pero multiplica.
           MUL (let [res (aplicar-operador-diadico * pila)]
+                (if (nil? res) res (recur cod regs-de-act (inc cont-prg) res mapa-regs)))
+
+          ; EXP: Como ADD, pero eleva a la potencia.
+          EXP (let [res (aplicar-operador-diadico #(apply * (repeat %2 %1)) pila)]
                 (if (nil? res) res (recur cod regs-de-act (inc cont-prg) res mapa-regs)))
 
           ; DIV: Como ADD, pero divide.
