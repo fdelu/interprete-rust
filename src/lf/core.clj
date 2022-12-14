@@ -692,7 +692,7 @@
 )
 
 (defn hace-push-implicito? [instr]
-  (contains? #{'ADD 'SUB 'MUL 'DIV 'MOD 'OR 'AND 'EQ 'NEQ 'GT 'GTE 'LT 'LTE 'NEG 'NOT 'SQRT 'SIN 'ATAN 'ABS 'TOI 'TOF} instr)
+  (contains? #{'ADD 'SUB 'MUL 'DIV 'MOD 'OR 'AND 'EQ 'NEQ 'GT 'GTE 'LT 'LTE 'NEG 'NOT 'SQRT 'SIN 'ATAN 'ABS 'TOI 'TOF 'LN} instr)
 )
 
 (defn confirmar-retorno [amb]
@@ -1087,6 +1087,12 @@
                 (expresion)
                 (procesar-terminal ,,, (symbol ")") 12)
                 (generar ,,, 'SIN))
+         ln (-> amb
+                (escanear)
+                (procesar-terminal ,,, (symbol "(") 11)
+                (expresion)
+                (procesar-terminal ,,, (symbol ")") 12)
+                (generar ,,, 'LN))
         atan (-> amb
                 (escanear)
                 (procesar-terminal ,,, (symbol "(") 11)
@@ -1980,6 +1986,10 @@
           
           ; ABS: Incrementa cont-prg en 1, quita de la pila un elemento numerico, calcula su valor absoluto y lo coloca al final de la pila.
           ABS (let [res (aplicar-operador-monadico #(Math/abs %) pila)]
+                (if (nil? res) res (recur cod regs-de-act (inc cont-prg) res mapa-regs)))
+
+          ; LN: Incrementa cont-prg en 1, quita de la pila un elemento numerico, calcula su valor logaritmo natural y lo coloca al final de la pila.
+          LN (let [res (aplicar-operador-monadico #(Math/log %) pila)]
                 (if (nil? res) res (recur cod regs-de-act (inc cont-prg) res mapa-regs)))
        )
   )
